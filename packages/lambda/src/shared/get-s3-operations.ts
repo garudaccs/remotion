@@ -1,6 +1,7 @@
 import type {_Object} from '@aws-sdk/client-s3';
 import type {AwsProvider} from '@remotion/lambda-client';
 import type {FullClientSpecifics} from '@remotion/serverless';
+import {toPosixRelativePath} from './make-s3-key';
 
 export const getS3DiffOperations = async ({
 	objects,
@@ -26,20 +27,25 @@ export const getS3DiffOperations = async ({
 		},
 	});
 
+	const posixDir: typeof dir = {};
+	for (const [key, value] of Object.entries(dir)) {
+		posixDir[toPosixRelativePath(key)] = value;
+	}
+
 	const filesOnS3ButNotLocal: _Object[] = [];
 	for (const fileOnS3 of objects) {
 		const key = fileOnS3.Key?.substring(prefix.length + 1) as string;
-		if (!dir[key]) {
+		if (!posixDir[key]) {
 			filesOnS3ButNotLocal.push(fileOnS3);
 		}
 	}
 
 	const localFilesNotOnS3: string[] = [];
-	for (const d of Object.keys(dir)) {
+	for (const d of Object.keys(posixDir)) {
 		let found: _Object | undefined;
 		for (const o of objects) {
 			const key = o.Key?.substring(prefix.length + 1) as string;
-			if (key === d && o.ETag === (await dir[d]())) {
+			if (key === d && o.ETag === (await posixDir[d]())) {
 				found = o;
 				break;
 			}
@@ -51,10 +57,10 @@ export const getS3DiffOperations = async ({
 	}
 
 	const existing: string[] = [];
-	for (const d of Object.keys(dir)) {
+	for (const d of Object.keys(posixDir)) {
 		for (const o of objects) {
 			const key = o.Key?.substring(prefix.length + 1) as string;
-			if (key === d && o.ETag === (await dir[d]())) {
+			if (key === d && o.ETag === (await posixDir[d]())) {
 				existing.push(d);
 				break;
 			}

@@ -6,7 +6,7 @@ import type {AwsRegion, RequestHandler} from '@remotion/lambda-client';
 import {LambdaClientInternals} from '@remotion/lambda-client';
 import type {Privacy, UploadDirProgress} from '@remotion/serverless';
 import mimeTypes from 'mime-types';
-import {makeS3Key} from '../shared/make-s3-key';
+import {makeS3Key, toPosixRelativePath} from '../shared/make-s3-key';
 import {multipartUploadPartSize} from '../shared/multipart-upload-part-size';
 import {waitForPromisesToFinish} from '../shared/wait-for-promises-to-finish';
 
@@ -33,7 +33,9 @@ async function getFiles(
 				return [dirent, res];
 			})
 			.filter(([dirent, res]) => {
-				const relative = path.relative(originalDirectory, res);
+				const relative = toPosixRelativePath(
+					path.relative(originalDirectory, res),
+				);
 				if (dirent.isDirectory()) {
 					return true;
 				}

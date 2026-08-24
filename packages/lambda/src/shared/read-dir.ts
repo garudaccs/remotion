@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type {ReadDir} from '@remotion/serverless';
 import {getEtagOfFile} from './get-etag';
+import {toPosixRelativePath} from './make-s3-key';
 
 // Function to recursively read a directory and return a list of files
 // with their etags and file names
@@ -34,15 +35,11 @@ export const readDirectory: ReadDir = ({
 		if (fs.lstatSync(filePath).isSymbolicLink()) {
 			const realPath = fs.realpathSync(filePath);
 
-			etags[path.relative(originalDir, filePath)] = getEtagOfFile(
-				realPath,
-				onProgress,
-			);
+			etags[toPosixRelativePath(path.relative(originalDir, filePath))] =
+				getEtagOfFile(realPath, onProgress);
 		} else {
-			etags[path.relative(originalDir, filePath)] = getEtagOfFile(
-				filePath,
-				onProgress,
-			);
+			etags[toPosixRelativePath(path.relative(originalDir, filePath))] =
+				getEtagOfFile(filePath, onProgress);
 		}
 	}
 
